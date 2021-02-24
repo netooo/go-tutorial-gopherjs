@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+const TIMEOUT = 300 * time.Second
+
 type Room struct {
 	UUID       uuid.UUID
 	joinCh     chan *User
