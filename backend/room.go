@@ -49,3 +49,19 @@ func roomManage(ctx context.Context) {
 		}
 	}
 }
+
+func NewRoom(ctx context.Context, room *models.Room) *Room {
+	r := &Room{
+		UUID:       room.UUID,
+		joinCh:     make(chan *User),
+		leaveCh:    make(chan uuid.UUID),
+		msgCh:      make(chan *models.Message),
+		getUsersCh: make(chan chan []*models.User),
+		timer: time.AfterFunc(TIMEOUT, func() {
+			delRoomCh <- room.UUID
+		}),
+	}
+	ctx, r.cancel = context.WithCancel(ctx)
+	go r.do(ctx)
+	return r
+}
