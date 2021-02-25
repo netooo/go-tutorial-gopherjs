@@ -52,6 +52,12 @@ func roomManage(ctx context.Context) {
 	}
 }
 
+func GetRoom(uid string) *Room {
+	ch := make(chan *Room, 1)
+	getRoomCh <- getRoom{uid, ch}
+	return <-ch
+}
+
 func NewRoom(ctx context.Context, room *models.Room) *Room {
 	r := &Room{
 		UUID:       room.UUID,
