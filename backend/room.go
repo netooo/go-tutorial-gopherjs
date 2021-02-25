@@ -67,3 +67,63 @@ func NewRoom(ctx context.Context, room *models.Room) *Room {
 	go r.do(ctx)
 	return r
 }
+
+func (r *Room) do(ctx context.Context) {
+	log.Println("start do room:", r.UUID)
+	defer log.Println("stop do room:", r.UUID)
+	members := map[string]*User{}
+	defer func() {
+		for _, m := range members {
+			m.Close()
+		}
+		r.Close()
+	}()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case member := <-r.joinCh:
+			join := &models.User{
+				UUID:     member.UUID,
+				Nickname: member.Nickname,
+			}
+			members[member.UUID.String()] = member
+			for _, m := range members {
+				if err := m.Write("join", join); err != nil {
+					log.Println(err)
+				}
+			}
+		case u := <-r.leaveCh:
+			member := members[u.String()]
+			if member != nil {
+				leave := &models.User{
+					UUID:     member.UUID,
+					Nickname: member.Nickname,
+				}
+				for _, m := range members {
+					if err := m.Write("leave", leave); err != nil {
+						log.Println(err)
+					}
+				}
+				member.Close()
+			}
+			delete(members, u.String())
+		case msg := <-r.msgCh:
+			for _, m := range members {
+				if err := m.Write("message", msg); err != nil {
+					log.Println(err)
+				}
+			}
+		case ch := <-r.getUsersCh:
+			res := make([]*models.User, 0, len(members))
+			for _, m := range members {
+				res = append(res, &models.User{
+					UUID:     m.UUID,
+					Nickname: m.Nickname,
+				})
+			}
+			ch <- res
+		}
+		r.timer.Reset(TIMEOUT)
+	}
+}
