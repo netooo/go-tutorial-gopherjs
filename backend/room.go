@@ -94,8 +94,8 @@ func (r *Room) do(ctx context.Context) {
 				Nickname: user.Nickname,
 			}
 			users[user.UUID.String()] = user
-			for _, m := range users {
-				if err := m.Write("join", join); err != nil {
+			for _, u := range users {
+				if err := u.Write("join", join); err != nil {
 					log.Println(err)
 				}
 			}
@@ -106,8 +106,8 @@ func (r *Room) do(ctx context.Context) {
 					UUID:     user.UUID,
 					Nickname: user.Nickname,
 				}
-				for _, m := range users {
-					if err := m.Write("leave", leave); err != nil {
+				for _, u := range users {
+					if err := u.Write("leave", leave); err != nil {
 						log.Println(err)
 					}
 				}
@@ -115,17 +115,17 @@ func (r *Room) do(ctx context.Context) {
 			}
 			delete(users, u.String())
 		case msg := <-r.msgCh:
-			for _, m := range users {
-				if err := m.Write("message", msg); err != nil {
+			for _, u := range users {
+				if err := u.Write("message", msg); err != nil {
 					log.Println(err)
 				}
 			}
 		case ch := <-r.getUsersCh:
 			res := make([]*models.User, 0, len(users))
-			for _, m := range users {
+			for _, u := range users {
 				res = append(res, &models.User{
-					UUID:     m.UUID,
-					Nickname: m.Nickname,
+					UUID:     u.UUID,
+					Nickname: u.Nickname,
 				})
 			}
 			ch <- res
