@@ -79,8 +79,8 @@ func (r *Room) do(ctx context.Context) {
 	defer log.Println("stop do room:", r.UUID)
 	users := map[string]*User{}
 	defer func() {
-		for _, m := range users {
-			m.Close()
+		for _, u := range users {
+			u.Close()
 		}
 		r.Close()
 	}()
