@@ -74,6 +74,12 @@ func NewRoom(ctx context.Context, room *models.Room) *Room {
 	return r
 }
 
+func (r *Room) Close() {
+	r.once.Do(func() {
+		r.cancel()
+	})
+}
+
 func (r *Room) do(ctx context.Context) {
 	log.Println("start do room:", r.UUID)
 	defer log.Println("stop do room:", r.UUID)
