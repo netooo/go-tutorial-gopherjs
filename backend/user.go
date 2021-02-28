@@ -6,6 +6,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/netooo/go-tutorial-gopherjs/app/models"
 	"golang.org/x/net/websocket"
+	"io"
+	"log"
 	"sync"
 )
 
@@ -35,15 +37,46 @@ func (u *User) Close() {
 	})
 }
 
-func NewUser(ctx context.Context, parent *Room, member *models.User, conn *websocket.Conn) *User {
-	m := &User{
-		UUID:     member.UUID,
-		Nickname: member.Nickname,
+func NewUser(ctx context.Context, parent *Room, user *models.User, conn *websocket.Conn) *User {
+	u := &User{
+		UUID:     user.UUID,
+		Nickname: user.Nickname,
 		parent:   parent,
 		conn:     conn,
 		encoder:  json.NewEncoder(conn),
 	}
-	ctx, m.cancel = context.WithCancel(ctx)
-	go m.do(ctx)
-	return m
+	ctx, u.cancel = context.WithCancel(ctx)
+	go u.do(ctx)
+	return u
+}
+
+func (u *User) do(ctx context.Context) {
+	defer u.Close()
+	defer u.parent.Leave(u.UUID)
+	reader := json.NewDecoder(u.conn)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+		var v *models.Event
+		if err := reader.Decode(&v); err != nil {
+			if err == io.EOF {
+				return
+			}
+			log.Println(err)
+			continue
+		}
+		log.Println("received:", v.Type, string(v.Data))
+		switch v.Type {
+		case "message":
+			var message *models.Message
+			if err := v.Unmarshal(&message); err != nil {
+				log.Println(err)
+				continue
+			}
+			u.parent.Publish(message)
+		}
+	}
 }

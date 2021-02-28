@@ -80,6 +80,14 @@ func (r *Room) Close() {
 	})
 }
 
+func (r *Room) Publish(msg *models.Message) {
+	r.msgCh <- msg
+}
+
+func (r *Room) Leave(u uuid.UUID) {
+	r.leaveCh <- u
+}
+
 func (r *Room) do(ctx context.Context) {
 	log.Println("start do room:", r.UUID)
 	defer log.Println("stop do room:", r.UUID)
