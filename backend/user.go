@@ -1,8 +1,10 @@
 package backend
 
 import (
+	"context"
 	"encoding/json"
 	"github.com/google/uuid"
+	"github.com/netooo/go-tutorial-gopherjs/app/models"
 	"golang.org/x/net/websocket"
 	"sync"
 )
@@ -31,4 +33,17 @@ func (u *User) Close() {
 		_ = conn.Close()
 		u.cancel()
 	})
+}
+
+func NewUser(ctx context.Context, parent *Room, member *models.User, conn *websocket.Conn) *User {
+	m := &User{
+		UUID:     member.UUID,
+		Nickname: member.Nickname,
+		parent:   parent,
+		conn:     conn,
+		encoder:  json.NewEncoder(conn),
+	}
+	ctx, m.cancel = context.WithCancel(ctx)
+	go m.do(ctx)
+	return m
 }
